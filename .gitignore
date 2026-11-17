@@ -73,3 +73,11 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Android release signing
+*.keystore
+*.jks
+
+# Environment files
+.env
+.env.*
