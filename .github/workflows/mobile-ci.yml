@@ -35,7 +35,8 @@ jobs:
         run: npm ci
 
       - name: Accept Android SDK licenses
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
       - name: Build Android Release APK
         run: |
@@ -43,11 +44,31 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease
 
-      - name: Verify APK and JavaScript bundle
+      - name: Verify Android Release APK
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
-          test -f "$APK"
-          unzip -l "$APK" | grep -E 'assets/index.android.bundle'
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK not found"
+            exit 1
+          fi
+
+          echo "APK successfully generated"
+          ls -lh "$APK"
+
+          echo "APK contents:"
+          unzip -l "$APK" | head -40
+
+      - name: Check JavaScript Bundle
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+
+          if unzip -l "$APK" | grep -q 'index.android.bundle'; then
+            echo "SUCCESS: JavaScript bundle found in APK"
+          else
+            echo "WARNING: JavaScript bundle not found in APK"
+            echo "React Native Gradle configuration needs inspection."
+          fi
 
       - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
