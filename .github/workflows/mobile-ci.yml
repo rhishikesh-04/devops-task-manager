@@ -42,39 +42,48 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleRelease
+          ./gradlew clean assembleRelease
 
-      - name: Verify Android Release APK
+      - name: Find and Verify Android APK
+        id: apk
         run: |
-          APK="android/app/build/outputs/apk/release/app-release.apk"
+          echo "Searching for generated APK files..."
 
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: APK not found"
+          find android/app/build/outputs -type f -name "*.apk" -print
+
+          APK=$(find android/app/build/outputs/apk/release \
+            -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: No release APK was generated."
+            echo "Available build outputs:"
+            find android/app/build/outputs -type f -print
             exit 1
           fi
 
-          echo "APK successfully generated"
+          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
+
+          echo "APK successfully generated:"
           ls -lh "$APK"
 
-          echo "APK contents:"
+          echo "Checking APK contents..."
           unzip -l "$APK" | head -40
 
       - name: Check JavaScript Bundle
         run: |
-          APK="android/app/build/outputs/apk/release/app-release.apk"
-
-          if unzip -l "$APK" | grep -q 'index.android.bundle'; then
-            echo "SUCCESS: JavaScript bundle found in APK"
+          if unzip -l "$APK_PATH" | grep -q 'index.android.bundle'; then
+            echo "SUCCESS: JavaScript bundle found."
           else
-            echo "WARNING: JavaScript bundle not found in APK"
-            echo "React Native Gradle configuration needs inspection."
+            echo "ERROR: JavaScript bundle not found."
+            echo "Inspect React Native Gradle configuration."
+            exit 1
           fi
 
       - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: ${{ env.APK_PATH }}
           if-no-files-found: error
           retention-days: 7
 
