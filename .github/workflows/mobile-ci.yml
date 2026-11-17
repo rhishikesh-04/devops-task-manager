@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  android:
+    android:
     name: Android debug build
     runs-on: ubuntu-latest
     steps:
@@ -21,8 +21,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
       - run: npm ci
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
       - run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
